@@ -1,6 +1,14 @@
 import datetime
+
+from matplotlib.pyplot import *
 from tkinter import *
 from tkinter import ttk
+# from matplotlib.figure import Figure
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
+# matplotlib.use("TkAgg")
+
+
 
 # Инициализация окна
 main_window = Tk()
@@ -39,27 +47,48 @@ def RenderBottom():
 
     Button(valuesFrame, text="Render Graph", command=RenderGraph).grid()
 
+def cm_to_inch(value):
+    return value/2.54
 
 # визуализация графика
 def RenderGraph():
-    canv = Canvas(graphFrame, width=graphWidth, height=graphHeight, bg="#FFFFFF")
-    canv.place(relx=.5, rely=.5, anchor="center")
+    value = [4, 5, 2, 6, 8, 2, 1]
+    days = ['mon', 'tue', 'wed', 'thur', 'frid', 'sut', 'sun']
 
-    # Оси координат
-    canv.create_line(graphWidth / 2, graphHeight, graphWidth / 2, 0, width=graphLineWidth, arrow=LAST)
-    canv.create_line(0, graphHeight / 2, graphWidth, graphHeight / 2, width=graphLineWidth, arrow=LAST)
+    sum_x = (1 + 7) * len(days) / 2
+    sr_x = sum_x / 7
+    sr_xx = sr_x ** 2
 
-    # Просчет графика
-    for i in range(valuesNumber - 1):
-        firstValue = graphValues[i].get()
-        secondValue = graphValues[i + 1].get()
+    sum_y = sum(value)
+    sr_y = sum_y / len(value)
 
-        if (firstValue != '' and secondValue != ''):
-            canv.create_text(graphWidth / valuesNumber * i, graphHeight / 2 + 20, text="13 April", fill="#45C4B0",
-                             font=("Helvectica", "10"))
-            canv.create_line(graphWidth / valuesNumber * i, graphHeight / 2 - int(firstValue),
-                             graphWidth / valuesNumber * (i + 1), graphHeight / 2 - int(secondValue),
-                             width=graphLineWidth)
+    sum_xy, sum_xx = 0, 0
+    trend_line = []
+
+    for i in range(0, len(value)):
+        sum_xx += value[i] ** 2
+        sum_xy += value[i] * i+1
+
+    b = (sum_xy - len(value) * sr_x * sr_y) / (sum_xx - len(value) * sr_xx)
+    a = sr_y - b * sr_x
+    for i in range(0, len(value)):
+        trend_line.append(a + b * (i + 1))
+
+
+
+    figure = Figure(figsize=(cm_to_inch(25), cm_to_inch(4)), dpi=130, facecolor="#45C4B0")
+    plot = figure.add_subplot(1, 1, 1)
+    plot.grid()
+
+    plot.plot(days, value, color="#45C4B0", marker=".", linestyle="-")
+    plot.plot(trend_line, color="y", marker="o", linestyle=":")
+
+    canv = FigureCanvasTkAgg(figure, main_window)
+    canv.get_tk_widget().grid(row=0, column=0, sticky='nsew')
+
+
+
+
 
 
 def click_date_button(value):
@@ -136,8 +165,8 @@ def ClickAddValue():
         add_value_window.rowconfigure(index=r, weight=1)
     label = Label(add_value_window, text="Choose month")
     label.grid(column=3, row=0, rowspan=1, columnspan=4)
-    months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
-              "November", "December"]
+    months = ["January", "February", "March", "April", "May", "June",
+              "July", "August", "September", "October", "November", "December"]
     months_var = StringVar(value=months[0])
     select_month = ttk.Combobox(add_value_window, textvariable=months_var, values=months, state="readonly",
                                 justify=CENTER,
@@ -159,7 +188,7 @@ def ClickAddValue():
     number = date
     buttonsArray.append(value_button)
     select_month.bind("<<ComboboxSelected>>", check)
-    confirm_button = ttk.Button(add_value_window, text="Ok", width=33, command= lambda: add_value_window.destroy())
+    confirm_button = ttk.Button(add_value_window, text="Ok", width=33, command=lambda: add_value_window.destroy())
     confirm_button.grid(row=10, column=4, rowspan=1, columnspan=2)
     global current_date
     current_date = Label(add_value_window, text="Selected date: " + number + " " + month_value)
@@ -169,7 +198,6 @@ def ClickAddValue():
 
 
 # рамки, сейчас они просто в оперативке
-notesFrame = Frame(main_window, background='#45C4B0')
 graphFrame = Frame(main_window, background='#FFFFFF')
 valuesFrame = Frame(main_window, background='#DAFDBA')
 
@@ -185,11 +213,7 @@ def AddValue():
 
 
 # фиксируем их на плоскость с помощью упаковщиков
-# pack()-установка по пикселям
-# grid()-установка на таблице
-# place()-установка по координатам
-notesFrame.grid(row=0, column=0, sticky="nsew")
-graphFrame.grid(row=0, column=1, sticky="nsew")
+graphFrame.grid(row=0, column=0, columnspan=2, sticky="nsew")
 valuesFrame.grid(row=1, column=0, columnspan=2, sticky="nsew")
 
 RenderBottom()
